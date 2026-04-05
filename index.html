@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Photorefraction Screening</title>
+
+    <link rel="stylesheet" href="/styles.css">
+
+</head>
+
+<body>
+
+    <div class="app-container">
+
+        <div class="status-bar">
+
+            <div class="status-indicator">
+
+                <div class="status-dot" id="statusDot"></div>
+
+                <span id="statusText">Initializing...</span>
+
+            </div>
+
+        </div>
+
+
+
+        <div class="camera-container" id="cameraContainer">
+
+            <video id="videoElement" autoplay playsinline></video>
+
+            <canvas id="overlayCanvas"></canvas>
+
+        </div>
+
+
+
+        <div class="capture-container hidden" id="captureContainer">
+
+            <canvas id="captureCanvas"></canvas>
+
+        </div>
+
+
+
+        <div class="controls">
+
+            <button id="startBtn" class="btn-primary">Start Screening</button>
+
+            <button id="retakeBtn" class="btn-secondary hidden">Retake Photo</button>
+
+        </div>
+
+
+
+        <div class="instructions" id="instructions">
+
+            <p>Position the camera 30-40cm from the subject's face</p>
+
+            <p>Ensure both eyes are clearly visible</p>
+
+        </div>
+
+
+
+        <div class="results-panel hidden" id="resultsPanel">
+
+            <h3>Analysis Results</h3>
+
+            <div id="resultsContent"></div>
+
+        </div>
+
+    </div>
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh@0.4.1633559619/face_mesh.js" crossorigin="anonymous"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils@0.3.1620248357/camera_utils.js" crossorigin="anonymous"></script>
+
+    <script src="/app.js"></script>
+
+</body>
+
+</html>
