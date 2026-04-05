@@ -1,0 +1,86 @@
+# IllumEye Backend - Eccentric Photorefraction Analysis API
+
+## Setup
+
+```bash
+pip install -r requirements.txt
+python main.py
+```
+
+Server runs on `http://localhost:8000`
+
+## Endpoints
+
+### POST `/api/analyze-reflex`
+**File Upload** (multipart/form-data)
+
+```bash
+curl -X POST http://localhost:8000/api/analyze-reflex \
+  -F "file=@image.jpg"
+```
+
+### POST `/api/analyze-reflex-base64`
+**Base64 Encoded Image** (JSON)
+
+```bash
+curl -X POST http://localhost:8000/api/analyze-reflex-base64 \
+  -H "Content-Type: application/json" \
+  -d '{"image_base64":"..."}'
+```
+
+### GET `/health`
+Health check endpoint
+
+```bash
+curl http://localhost:8000/health
+```
+
+## Response Format
+
+```json
+{
+  "success": true,
+  "left_eye": {
+    "center_x": 150,
+    "center_y": 200,
+    "radius": 45,
+    "pupil_area_pixels": 6361.7,
+    "light_reflex_area_pixels": 850,
+    "reflex_ratio": 0.1337,
+    "reflex_percentage": 13.37,
+    "diopter_estimation": -0.215,
+    "detection_confidence": "medium"
+  },
+  "right_eye": null,
+  "analysis_timestamp": "2024-01-01T00:00:00Z"
+}
+```
+
+## Calibration Guide
+
+### HoughCircles Parameters (detect_pupils function)
+
+- **dp** (1.2): Inverse ratio of accumulator resolution. Increase if circles are missed or false positives occur.
+- **minDist** (100): Minimum distance between circle centers. Decrease if eyes are close together.
+- **param1** (100): Upper threshold for Canny edge detection. Decrease to detect fainter edges.
+- **param2** (30): Circle detection threshold. **DECREASE to detect fainter circles**, increase to be more strict.
+- **minRadius** (15): Minimum pupil radius. Decrease if pupils appear smaller in your images.
+- **maxRadius** (100): Maximum pupil radius. Increase if pupils appear larger.
+
+### Threshold Parameters (extract_pupil_metrics function)
+
+- **threshold_lower** (180): Lower bound for detecting light reflex. Decrease if reflex appears darker.
+- **threshold_upper** (255): Upper bound (always 255 for white).
+
+Adjust based on:
+- Flash intensity
+- Camera sensor sensitivity
+- Subject distance from camera
+- Ambient lighting conditions
+
+## Notes
+
+- Diopter estimation is a **placeholder** and requires clinical validation
+- The algorithm assumes good focus and adequate flash illumination
+- Works best with 30-40cm subject distance (matching capture distance)
+- Image should be at least 100x100 pixels
