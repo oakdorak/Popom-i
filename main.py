@@ -5,6 +5,7 @@ import numpy as np
 import cv2
 import os
 import logging
+import httpx
 from datetime import datetime
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -40,10 +41,42 @@ class ReflexAnalysisResponse(BaseModel):
 
 class VisionEngine:
     """
-    Motor de Visión Computacional: Integración de Popom-i v2.0.
+    Motor de Visión Computacional: Integración de Popom-i v2.0 con VLM Local.
     Implementa fotorrefracción excéntrica (Bobier-Braddick), 
-    Marcadores Motores Digitales (TEA) y Bucle de Retroalimentación de Calibración.
+    Marcadores Motores Digitales (TEA) y análisis de documentos vía VLM local (Ollama).
     """
+    
+    OLLAMA_URL = "http://host.docker.internal:11434/api/generate"
+    OLLAMA_MODEL = "qwen2-vl:2b"
+
+    @classmethod
+    async def analyze_document_local(cls, image_base64: str, prompt: str) -> str:
+        """
+        Interfaz directa con la instancia local de Ollama para procesar imágenes.
+        Elimina la dependencia de APIs en la nube (Fireworks).
+        """
+        if "," in image_base64:
+            image_base64 = image_base64.split(",")[1]
+            
+        payload = {
+            "model": cls.OLLAMA_MODEL,
+            "prompt": prompt,
+            "images": [image_base64],
+            "stream": False,
+            "options": {"temperature": 0.0}
+        }
+        
+        try:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                res = await client.post(cls.OLLAMA_URL, json=payload)
+                if res.status_code == 200:
+                    return res.json().get("response", "")
+                else:
+                    logger.error(f"Ollama error: {res.status_code} - {res.text}")
+                    return f"Error llamando al motor de visión local: {res.status_code}"
+        except Exception as e:
+            logger.error(f"Exception calling Ollama: {str(e)}")
+            return f"Excepción en el motor de visión local: {str(e)}"
     
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
     CALIBRATION_FILE = os.path.join(BASE_DIR, "data", "vision_calibration.json")
@@ -339,6 +372,19 @@ async def process_feedback(request: FeedbackRequest):
         return {"success": True, "message": "Calibration updated successfully", "new_calibration": new_config}
     except Exception as e:
         logger.error(f"Feedback processing error: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+class DocumentAnalysisRequest(BaseModel):
+    image_base64: str
+    prompt: str
+
+@app.post("/api/analyze-document-local")
+async def analyze_document(request: DocumentAnalysisRequest):
+    try:
+        response = await VisionEngine.analyze_document_local(request.image_base64, request.prompt)
+        return {"success": True, "analysis": response}
+    except Exception as e:
+        logger.error(f"Document analysis error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/health")
